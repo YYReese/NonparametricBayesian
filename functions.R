@@ -55,8 +55,8 @@ Find_path <- function(a,b,m, breaks, y){
 ##' @return a_l_post, a_r_post
 update_alpha <- function(a_l,a_r,m,y){
   Mid <- (length(breaks)+1)/2
-  for (i in 1:m) {
-    delta <- (b-a)/2^(i+1)
+  for (i in 1:(m-1)) {
+    delta <- 2^(m-i-1)
     if (y < breaks[Mid]){
       a_l[Mid] <- a_l[Mid]+1
       Mid <- Mid - delta
@@ -70,7 +70,6 @@ update_alpha <- function(a_l,a_r,m,y){
 }
 
 update_alpha(a_l_prior,a_r_prior,maxLevel,0.13)
-
 
 
 
