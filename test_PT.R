@@ -1,11 +1,11 @@
 # observations
-y_obs <- rnorm(10)
+y_obs <- rnorm(100000)
 # Interval
 a <- -5
 b <- 5
 
 # maximum depth of the tree
-maxLevel <- 3
+maxLevel <- 10
 
 # Break the whole set into disjoint partitions
 #(each as a tree node)
@@ -21,14 +21,17 @@ a_l_prior <- rep(1/2,number_of_nodes)
 a_r_prior <- rep(1/2, number_of_nodes)
 
 # Update the posterior of alpha_l and alpha_r
-
-a_r_post <- update_alpha(a_l_prior,a_r_prior,maxLevel,y_obs)$a_r_post
-a_l_post <- update_alpha(a_l_prior,a_r_prior,maxLevel,y_obs)$a_l_post
+a_l <- a_l_prior
+a_r <- a_r_prior
+for (yi in y_obs){
+  a_l <- update_alpha(a_l,a_r,maxLevel,yi)$a_l_post
+  a_r <- update_alpha(a_l,a_r,maxLevel,yi)$a_r_post
+}
 
 # Draw samples from the posterior of theta
 theta <- rep(NA,number_of_nodes)
 for (i in 1:number_of_nodes){
-  theta[i] <- rbeta(1,a_l_post[i],a_r_post[i])
+  theta[i] <- rbeta(1,a_l[i],a_r[i])
 }
 
 
@@ -41,7 +44,9 @@ p <- rep(1,length(y_new))
 for (i in 1:length(y_new)){
   p[i] <- Cal_F(a,b,theta,maxLevel, breaks,y_new[i])
 }
-ggplot(data.frame(x=y_new,y=p,y_true=dnorm(y_new))) +
+
+
+ggplot(data.frame(x=y_new,y=p/sum(p),y_true=dnorm(y_new))) +
   geom_line(aes(x,y)) +
   geom_line(aes(x,y_true),col="red")
 

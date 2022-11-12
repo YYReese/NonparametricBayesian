@@ -9,11 +9,14 @@
 Cal_F <- function(a, b, theta, maxLevel, breaks, y){
   Mid <- (length(breaks)+1)/2
   p <- theta[Mid]
-  for (i in 2:maxLevel-1) {
-    delta <- (b-a)/2^(i+1)
+  for (i in 2:(maxLevel-1)) {
+    delta <- 2^(maxLevel-i)
     if (y < breaks[Mid]){
       Mid <- Mid - delta
       p <- p * theta[Mid]
+    }
+    else if (y == breaks[Mid]){
+      break
     }
     else {
       Mid <- Mid + delta
@@ -21,28 +24,6 @@ Cal_F <- function(a, b, theta, maxLevel, breaks, y){
     }
   }
   return (p)
-}
-
-##' Find path
-##' @param m depth of the tree
-##' @param breaks vector of break points
-##' @param y new data point
-Find_path <- function(a,b,m, breaks, y){
-  idx <- rep(FALSE, length(breaks))
-  Mid <- (length(breaks)+1)/2
-  idx[Mid] <- TRUE
-  for (i in 1:m) {
-    delta <- (b-a)/2^(i+1)
-    if (y < breaks[Mid]){
-      Mid <- Mid - delta
-      idx[Mid] <- TRUE
-    }
-    else {
-      Mid <- Mid + delta
-      idx[Mid] <- TRUE
-    }
-  }
-  return (idx)
 }
 
 
@@ -72,6 +53,27 @@ update_alpha <- function(a_l,a_r,m,y){
 update_alpha(a_l_prior,a_r_prior,maxLevel,0.13)
 
 
+##' Find path
+##' @param m depth of the tree
+##' @param breaks vector of break points
+##' @param y new data point
+Find_path <- function(a,b,m, breaks, y){
+  idx <- rep(FALSE, length(breaks))
+  Mid <- (length(breaks)+1)/2
+  idx[Mid] <- TRUE
+  for (i in 1:m) {
+    delta <- 2^(m-i-1)
+    if (y < breaks[Mid]){
+      Mid <- Mid - delta
+      idx[Mid] <- TRUE
+    }
+    else {
+      Mid <- Mid + delta
+      idx[Mid] <- TRUE
+    }
+  }
+  return (idx)
+}
 
 
 
