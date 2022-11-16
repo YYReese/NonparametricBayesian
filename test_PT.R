@@ -1,11 +1,11 @@
 # observations
-y_obs <- rnorm(100000)
+y_obs <- rnorm(10000)
 # Interval
 a <- -5
 b <- 5
 
 # maximum depth of the tree
-maxLevel <- 10
+maxLevel <- 100
 
 # Break the whole set into disjoint partitions
 #(each as a tree node)
@@ -47,8 +47,8 @@ for (i in 1:length(y_new)){
 
 
 ggplot(data.frame(x=y_new,y=p/sum(p),y_true=dnorm(y_new))) +
-  geom_line(aes(x,y)) +
-  geom_line(aes(x,y_true),col="red")
+  geom_point(aes(x,y)) +
+  #geom_line(aes(x,y_true),col="red")
 
 
 ################################################################################
@@ -67,4 +67,4 @@ plot(breaks,prob)
 # Calculate the posterior density of 
 post_density <- function(p_measure,likeli){
   p_measure/likeli
-}
+} 
