@@ -10,6 +10,7 @@ get_parent_count <- function(child_count){
   return (child_count[2*(1:parent_len)-1] + child_count[2*(1:parent_len)])
 }
 
+
 ##' Calculate the updated/posterior probability measure for the partitions
 ##' 
 ##' @param theta vector of parameter theta
