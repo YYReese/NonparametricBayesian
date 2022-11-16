@@ -1,140 +1,89 @@
-##' Calculate the probability measure given theta
+##' Count the number of observations for the parent 
 ##' 
-##' @param y new data point
+##' @param child_count vector of real, indicating the number of 
+##' observations falling into the child
+##' 
+##' @return vector of length 1/2*length(child_count), the 
+##' number of observations falling into the parents
+get_parent_count <- function(child_count){
+  parent_len <- length(child_count) / 2
+  return (child_count[2*(1:parent_len)-1] + child_count[2*(1:parent_len)])
+}
+
+##' Calculate the updated/posterior probability measure for the partitions
+##' 
 ##' @param theta vector of parameter theta
-##' @param maxLevel scalar, maximum tree levels i.e.depth of the tree
-##' @param breaks vector of break points
+##' @param maxK scalar, maximum tree levels i.e.depth of the tree
 ##' 
-##' @return scalar, probability measure of y
-Cal_F <- function(a, b, theta, maxLevel, breaks, y){
-  Mid <- (length(breaks)+1)/2
-  p <- theta[Mid]
-  for (i in 2:(maxLevel-1)) {
-    delta <- 2^(maxLevel-i)
-    if (y < breaks[Mid]){
-      Mid <- Mid - delta
-      p <- p * theta[Mid]
+##' @return vector of posterior probabilities for each partition
+Cal_prob <- function(theta, maxK){
+  prob <- c(theta[1], 1-theta[1])
+  prob_i <- c(theta[1], 1-theta[1])
+  for(i in 2:maxK){
+    new_prob_i <- c()
+    for(j in 1:length(prob_i)){
+      x <- theta[2^(i-1) + j - 1]
+      new_prob_i <- c(new_prob_i, prob_i[j]*x, prob_i[j]*(1-x))
     }
-    else if (y == breaks[Mid]){
-      break
-    }
-    else {
-      Mid <- Mid + delta
-      p <- p * (1-theta[Mid])
-    }
+    prob_i <- new_prob_i
+    prob <- c(prob, new_prob_i)
   }
-  return (p)
+  return (prob)
 }
 
-
-##' Update alpha
-##' @param a_l vector of scalar, alpha_l prior
-##' @param a_r vector of scalar, alpha_r prior
-##' @param y single observation
-##' @param m the depth of the tree
+##' Draw samples from the posterior of theta
 ##' 
-##' @return a_l_post, a_r_post
-update_alpha <- function(a_l,a_r,m,y){
-  Mid <- (length(breaks)+1)/2
-  for (i in 1:(m-1)) {
-    delta <- 2^(m-i-1)
-    if (y < breaks[Mid]){
-      a_l[Mid] <- a_l[Mid]+1
-      Mid <- Mid - delta
-    }
-    else {
-      a_r[Mid] <- a_r[Mid]+1
-      Mid <- Mid + delta
-    }
+##' @param a_post vector of alpha_post
+##' 
+##' @return vector of theta drawing from the posterior 
+draw_theta_post <- function(a_post){
+  theta <- c()
+  for(i in 1:(length(a_post)/2)){
+    theta <- c(theta, rbeta(1, a_post[2*i-1], a_post[2*i]))
   }
-  return (list(a_l_post=a_l,a_r_post=a_r))
+  return (theta)
 }
 
-update_alpha(a_l_prior,a_r_prior,maxLevel,0.13)
 
-
-##' Find path
-##' @param m depth of the tree
-##' @param breaks vector of break points
-##' @param y new data point
-Find_path <- function(a,b,m, breaks, y){
-  idx <- rep(FALSE, length(breaks))
-  Mid <- (length(breaks)+1)/2
-  idx[Mid] <- TRUE
-  for (i in 1:m) {
-    delta <- 2^(m-i-1)
-    if (y < breaks[Mid]){
-      Mid <- Mid - delta
-      idx[Mid] <- TRUE
-    }
-    else {
-      Mid <- Mid + delta
-      idx[Mid] <- TRUE
-    }
+##' Perform a Polya Tree model 
+##' 
+##' @param a scalar, left point of the bounded support
+##' @param b scalar, right point of the bounded support
+##' @param maxK scalar, maximum level of the tree (i.e.depth)
+##' @param a_prior vector, prior distribution for alpha
+##' @param y_obs vector of observations
+##' 
+##' @return vector, the posterior probability measure after observing data
+PT_update <- function(a, b, maxK=10, a_prior, y_obs){
+  # Total number of nodes in the tree
+  nParam <- 2^(maxK + 1) - 2
+  
+  # Break the whole set into disjoint partitions (leaf)
+  breaks <- a + (1:(2^maxK-1)) / (2^maxK) * (b-a) 
+  
+  # Make all observations fall into the bounded support
+  y_obs[y_obs < a] <- a
+  y_obs[y_obs > b] <- b
+  
+  # Count the number of observations falling into 
+  # the partitions (nodes in the bottom level of the tree)
+  leaf_count <- hist(y_obs, breaks=c(-Inf, breaks, Inf), plot=FALSE)$counts
+  
+  # Find the number of observations falling into each nodes recursively
+  count <- c()
+  child_count <- leaf_count
+  while(length(child_count) > 1){
+    count <- c(child_count, count)
+    parent_count <- get_parent_count(child_count)
+    child_count <- parent_count
   }
-  return (idx)
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-##' Calculate the marginal likelihood for y
-##' 
-##' @param y vector of observations
-##' @param a_l vector of prior values of alpha_epsilon_k_0 
-##' (parameter 1 for theta in Beta distribution)
-##' note: theta ~ Beta(a_l,a_r)
-##' @param a_r vector of prior values of alpha_epsilon_k_1
-##' (parameter 2 for theta in Beta distribution)
-##' @param n_counts vector of number of observations in each node/sub_interval
-##' 
-##' @return scalar, the marginal likelihood of observations y
-marginal_likeli <- function(y, a_l, a_r, n_counts){
-  log_likeli <- lgamma(a_l+a_r) + lgamma(a_l+n_counts) + lgamma(a_r+n_counts) - 
-    lgamma(a_l) - lgamma(a_r) - lgamma(a_r+a_r+2*n_counts)
-  return (exp(log_likeli))
-}
-
-##' Calculate the probability measure of each Bk
-##' 
-##' @param a_l 
-##' @param a_r
-##' @param breaks "tree nodes"
-##' @param y scalar, new data point where we would like to measure the probability
-##' 
-##' @return probability measure of y 
-prob_measure <- function(a_l, a_r, breaks, y){
-  prod(a_l[y<tail(breaks,length(breaks)-1)]/
-         (a_l[y<tail(breaks,length(breaks)-1)]+
-            a_r[y<tail(breaks,length(breaks)-1)])) * 
-    prod(a_r[y>=tail(breaks,length(breaks)-1)]/
-           (a_l[y>=tail(breaks,length(breaks)-1)]+
-              a_r[y>=tail(breaks,length(breaks)-1)]))
+  
+  # Update alpha posterior
+  a_post <- a_prior + count
+  
+  # Draw samples from the posterior of theta
+  theta <- draw_theta_post(a_post)
+  
+  prob <- Cal_prob(theta, maxK)
+  
 }
