@@ -86,5 +86,5 @@ PT_update <- function(a, b, maxK=10, a_prior, y_obs){
   theta <- draw_theta_post(a_post)
   
   prob <- Cal_prob(theta, maxK)
-  
+  return (prob)
 }
