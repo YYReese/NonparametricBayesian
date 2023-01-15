@@ -11,7 +11,8 @@ get_parent_count <- function(child_count){
 }
 
 
-##' Calculate the updated/posterior probability measure for the partitions
+##' Calculate the updated/posterior 
+##' probability measure for the partitions
 ##' 
 ##' @param theta vector of parameter theta
 ##' @param maxK scalar, maximum tree levels i.e.depth of the tree
@@ -32,15 +33,15 @@ Cal_prob <- function(theta, maxK){
   return (prob)
 }
 
-##' Draw samples from the posterior of theta
+##' Draw theta samples
 ##' 
-##' @param a_post vector of alpha_post
+##' @param a vector of alpha
 ##' 
-##' @return vector of theta drawing from the posterior 
-draw_theta_post <- function(a_post){
+##' @return vector of theta drawing from a specified beta
+draw_theta <- function(a=a_post){
   theta <- c()
-  for(i in 1:(length(a_post)/2)){
-    theta <- c(theta, rbeta(1, a_post[2*i-1], a_post[2*i]))
+  for(i in 1:(length(a)/2)){
+    theta <- c(theta, rbeta(1, a[2*i-1], a[2*i]))
   }
   return (theta)
 }
@@ -83,8 +84,9 @@ PT_update <- function(a, b, maxK=10, a_prior, y_obs){
   a_post <- a_prior + count
   
   # Draw samples from the posterior of theta
-  theta <- draw_theta_post(a_post)
+  theta <- draw_theta(a_post)
   
   prob <- Cal_prob(theta, maxK)
+
   return (prob)
 }
