@@ -33,15 +33,35 @@ Cal_prob <- function(theta, maxK){
   return (prob)
 }
 
+##' Calculate the predictive probability (!Does Not Work!)
+##' probability measure for the partitions
+##' 
+##' @param alpha vector of parameter alpha
+##' @param maxK scalar, maximum tree levels i.e.depth of the tree
+##' 
+##' @return vector of expected predictive probabilities 
+##' for each partition
+Marginal_prob <- function(a_prior,a_post){
+  marg <- 0
+  for(i in 1:(length(a_prior)/2)){
+    marg <- marg + (lgamma(a_post[2*i-1])+lgamma(a_post[2*i])+
+      lgamma(a_prior[2*i-1]+a_prior[2*i])-
+      (lgamma(a_post[2*i-1]+a_post[2*i])+
+         lgamma(a_prior[2*i-1])+lgamma(a_prior[2*i])))
+  }
+  return (exp(marg))
+}
+
+
 ##' Draw theta samples
 ##' 
-##' @param a vector of alpha
+##' @param alpha vector of alpha
 ##' 
 ##' @return vector of theta drawing from a specified beta
-draw_theta <- function(a=a_post){
+draw_theta <- function(alpha=a_post){
   theta <- c()
-  for(i in 1:(length(a)/2)){
-    theta <- c(theta, rbeta(1, a[2*i-1], a[2*i]))
+  for(i in 1:(length(alpha)/2)){
+    theta <- c(theta, rbeta(1, alpha[2*i-1], alpha[2*i]))
   }
   return (theta)
 }
@@ -87,6 +107,71 @@ PT_update <- function(a, b, maxK=10, a_prior, y_obs){
   theta <- draw_theta(a_post)
   
   prob <- Cal_prob(theta, maxK)
-
-  return (prob)
+  
+  return (list(prob=prob,a_post=a_post))
 }
+
+
+##' The sampling function f constructed by 3/2 Matern
+##' 
+##' @param x
+##' 
+##' @return f(x)
+f <- function(x){
+  l <- length(x)
+  Sigma <- Matern_k(x,x)
+  R <- chol(Sigma)
+  return( t(R)%*%c(rnorm(n=l,mean=0,sd = 1)) )
+}
+
+##' The sampling function g constructed by Exp
+##' 
+##' @param x
+##' 
+##' @return g(x)
+g <- function(x){
+  l <- length(x)
+  Sigma <- Exp_k(x,x)
+  R <- chol(Sigma)
+  return( t(R)%*%c(rnorm(n=l,mean=0,sd = 1))  )
+}
+
+##' 3/2 Matern kernel 
+##' 
+##' @param X1 numeric vector 
+##' @param X2 numeric vector 
+##' @param l length parameter
+##' 
+##' @return the covariance matrix of X1 and X2
+Matern_k <- function(X1,X2,l=1){
+  Sigma <- matrix(rep(0, length(X1)*length(X2)), nrow=length(X1))
+  for (i in 1:nrow(Sigma)) {
+    for (j in 1:ncol(Sigma)) {
+      r <- abs(X1[i]-X2[j])
+      Sigma[i,j] <- (1+sqrt(3)*r/l)*exp(-sqrt(3)*r/l)
+    }
+  }
+  return (Sigma)
+}
+
+##' Exponential kernel 
+##' @param X1 numeric vector 
+##' @param X2 numeric vector 
+##' @param l length parameter
+##' 
+##' @return the covariance matrix of X1 and X2
+Exp_k <- function(X1,X2,l=1){
+  Sigma <- matrix(rep(0, length(X1)*length(X2)), nrow=length(X1))
+  for (i in 1:nrow(Sigma)) {
+    for (j in 1:ncol(Sigma)) {
+      r <- abs(X1[i]-X2[j])
+      Sigma[i,j] <- exp(-r/l)
+    }
+  }
+  return (Sigma)
+}
+
+
+
+
+
