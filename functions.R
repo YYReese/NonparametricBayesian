@@ -41,15 +41,15 @@ Cal_prob <- function(theta, maxK){
 ##' 
 ##' @return vector of expected predictive probabilities 
 ##' for each partition
-Marginal_prob <- function(a_prior,a_post){
-  marg <- 0
+log_Marginal_prob <- function(a_prior,a_post){
+  log_marg <- 0
   for(i in 1:(length(a_prior)/2)){
-    marg <- marg + (lgamma(a_post[2*i-1])+lgamma(a_post[2*i])+
+    log_marg <- log_marg + (lgamma(a_post[2*i-1])+lgamma(a_post[2*i])+
       lgamma(a_prior[2*i-1]+a_prior[2*i])-
       (lgamma(a_post[2*i-1]+a_post[2*i])+
          lgamma(a_prior[2*i-1])+lgamma(a_prior[2*i])))
   }
-  return (exp(marg))
+  return (log_marg)
 }
 
 
@@ -143,7 +143,7 @@ g <- function(x){
 ##' @param l length parameter
 ##' 
 ##' @return the covariance matrix of X1 and X2
-Matern_k <- function(X1,X2,l=1){
+Matern_k <- function(X1,X2,l=4){
   Sigma <- matrix(rep(0, length(X1)*length(X2)), nrow=length(X1))
   for (i in 1:nrow(Sigma)) {
     for (j in 1:ncol(Sigma)) {
