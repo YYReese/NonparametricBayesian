@@ -25,7 +25,7 @@ a_prior <- rep(1/2,  nParam)
 n <- 10000
 prob <- matrix(nrow=n,ncol=nParam)
 for (i in 1:n){
-  prob[i,] <- PT_update(a,b,maxK,a_prior, y_obs)
+  prob[i,] <- PT_update(a,b,maxK,a_prior, y_obs)$prob
 }
 
 # Compute the mean of the realisations at each point
@@ -64,22 +64,21 @@ title("n=5000 observations",cex=0.3)
 legend("topright", pch=c(15,15), 
        legend=c("Standard Gaussian", "Post PT estimation","90% CI"), 
        col=c("black",2,"grey"), bty="n", cex=0.5)
+a_post <- PT_update(a,b,maxK,a_prior, y_obs)$a_post
 
+log_Marginal_prob(a_prior, a_post)
 
 #######################Change point detection#####################
+log_marg_prev <- c()
+log_marg_after <- c()
 for (tau in t){
   y_obs_prev <- y_obs[1:tau]
-  # Draw n realisations from posterior PT
-  n <- 5000
-  prob_prev <- matrix(nrow=n,ncol=nParam)
-  for (i in 1:n){
-    prob_prev[i,] <- PT_update(a,b,maxK,a_prior, y_obs_prev)
-  }
-  # Draw n realisations from posterior PT
-  n <- 50000
-  prob_after <- matrix(nrow=n,ncol=nParam)
-  for (i in 1:n){
-    prob_after[i,] <- PT_update(a,b,maxK,a_prior, y_obs_after)
-  }
-  
+  y_obs_after <- y_obs[(tau+1):n_obs]
+  a_post_prev <- PT_update(a,b,maxK,a_prior, y_obs_prev)$a_post
+  a_post_after <- PT_update(a,b,maxK,a_prior, y_obs_after)$a_post
+  log_marg_prev[tau] <- log_Marginal_prob(a_prior,a_post_prev)
+  log_marg_after[tau] <- log_Marginal_prob(a_prior,a_post_after)
 }
+log_marg <- log_marg_prev + log_marg_after
+change <- which.max(log_marg)
+
