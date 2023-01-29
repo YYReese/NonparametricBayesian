@@ -1,10 +1,11 @@
 source("functions.R")
 load("simulatedData.RData")
 
+
 # observations
 n_obs <- 5000
 t <- 1:n_obs
-y_obs1 <- rnorm(n_obs/2) 
+y_obs1 <- rexp(n_obs/2,4) 
 y_obs2 <- rexp(n_obs/2)
 y_obs <- c(y_obs1,y_obs2)
 
@@ -59,13 +60,14 @@ for (tau in 2:n_obs){
 log_marg <- log_marg_prev + log_marg_after
 change <- which.max(log_marg)
 plot(log_marg)
+points(change,log_marg[change],col="red")
 
 
 
 #############M1:Single change point detection--non-Gaussian############
 ##################Work well as desired##############################
 library(readr)
-machine_0 <- read_csv("machine_0.csv")
+machine_0 <- read_csv("data/machine_0.csv")
 
 # observations
 n_obs <- 3000
@@ -110,8 +112,7 @@ for (tau in 2:n_obs){
 log_marg <- log_marg_prev + log_marg_after
 change1 <- which.max(log_marg)
 plot(log_marg)
-points(change1,log_marg[change],col="red")
-
+points(change1,log_marg[change1],col="red")
 
 
 #############M2:Single change point detection--non-Gaussian############
@@ -143,12 +144,65 @@ for (tau in 2:n_obs){
 log_marg <- log_marg_prev + log_marg_after
 change2 <- which.max(log_marg)
 plot(log_marg)
-points(change2,log_marg[change],col="red")
+points(change2,log_marg[change2],col="red")
 
 plot(machine_0$`3`)
 abline(v=change1, col="red")
-abline(v=change1, col="blue")
+abline(v=change2, col="blue")
 
 
+##################Another example#################
+library("rjson")
+brent_spot <- fromJSON(file="brent_spot.json")
+brent_spot <- as.data.frame(brent_spot)
+plot(brent_spot$series.raw)
+
+# observations
+n_obs <- nrow(stationB)
+t <- 1:n_obs
+y_obs <- stationB$PRCP
+
+# maximum depth of the tree
+maxK <- 7
+
+# Interval
+a <- floor(min(y_obs))
+b <- ceiling(max(y_obs))
+
+nParam <- 2^(maxK + 1) - 2
+breaks <- a + (1:(2^maxK-1)) / (2^maxK) * (b-a) 
+# Set the prior knowledge about alpha
+a_prior <- rep(1/2,  nParam)
+log_marg_prev <- c(-Inf)
+log_marg_after <- c(-Inf)
+for (tau in 2:n_obs){
+  # Observations
+  y_obs_prev <- y_obs[1:tau-1]
+  y_obs_after <- y_obs[tau:n_obs]
+  
+  # Interval
+  a <- floor(min(y_obs_prev))
+  b <- ceiling(max(y_obs_prev))
+  # Breaks
+  nParam <- 2^(maxK + 1) - 2
+  breaks <- a + (1:(2^maxK-1)) / (2^maxK) * (b-a) 
+  # Fitting
+  a_post_prev <- PT_update(a,b,maxK,a_prior, y_obs_prev)$a_post
+  # Interval
+  a <- floor(min(y_obs_after))
+  b <- ceiling(max(y_obs_after))
+  # Breaks
+  breaks <- a + (1:(2^maxK-1)) / (2^maxK) * (b-a) 
+  a_post_after <- PT_update(a,b,maxK,a_prior, y_obs_after)$a_post
+  log_marg_prev[tau] <- log_Marginal_prob(a_prior,a_post_prev)
+  log_marg_after[tau] <- log_Marginal_prob(a_prior,a_post_after)
+}
+log_marg <- log_marg_prev + log_marg_after
+change1 <- which.max(log_marg)
+plot(log_marg)
+points(change1,log_marg[change1],col="red")
+
+plot(stationB$PRCP,type="l")
+abline(v=change1, col="red")
 
 
