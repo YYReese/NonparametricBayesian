@@ -111,6 +111,24 @@ PT_update <- function(a, b, maxK=10, a_prior, y_obs){
   return (list(prob=prob,a_post=a_post))
 }
 
+##' Generate alpha priors which results absolute continuous
+##' random probability measures -- alpha=cm^2
+##' 
+##' @param c scalar, hyperparameter 
+##' @param maxK scalar, maximum tree levels 
+##' i.e.depth of the tree
+##' 
+##' @return vector of alpha prior
+alpha_priors <- function(c=1, maxK){
+  alpha <- c()
+  for(m in 1:(2^maxK-1)){
+    alpha[2*m-1] <- m^2
+    alpha[2*m] <- m^2
+  }
+  return (alpha)
+}
+
+
 
 ##' The sampling function f constructed by 3/2 Matern
 ##' 
