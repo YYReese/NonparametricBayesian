@@ -116,6 +116,7 @@ PT_update <- function(a, b, maxK=10, a_prior, y_obs){
 ##' 
 ##' @param c scalar, hyperparameter 
 ##' @param maxK scalar, maximum tree levels 
+##' @param G0 centering distribution
 ##' i.e.depth of the tree
 ##' 
 ##' @return vector of alpha prior
@@ -128,68 +129,29 @@ alpha_priors <- function(c=1, maxK){
   return (alpha)
 }
 
-
-
-##' The sampling function f constructed by 3/2 Matern
+##' Find change point location
 ##' 
-##' @param x
+##' @param y_obs vector of ordered data
+##' @param maxK scalar, maximum tree levels 
 ##' 
-##' @return f(x)
-f <- function(x){
-  l <- length(x)
-  Sigma <- Matern_k(x,x)
-  R <- chol(Sigma)
-  return( t(R)%*%c(rnorm(n=l,mean=0,sd = 1)) )
-}
-
-##' The sampling function g constructed by Exp
-##' 
-##' @param x
-##' 
-##' @return g(x)
-g <- function(x){
-  l <- length(x)
-  Sigma <- Exp_k(x,x)
-  R <- chol(Sigma)
-  return( t(R)%*%c(rnorm(n=l,mean=0,sd = 1))  )
-}
-
-##' 3/2 Matern kernel 
-##' 
-##' @param X1 numeric vector 
-##' @param X2 numeric vector 
-##' @param l length parameter
-##' 
-##' @return the covariance matrix of X1 and X2
-Matern_k <- function(X1,X2,l=4){
-  Sigma <- matrix(rep(0, length(X1)*length(X2)), nrow=length(X1))
-  for (i in 1:nrow(Sigma)) {
-    for (j in 1:ncol(Sigma)) {
-      r <- abs(X1[i]-X2[j])
-      Sigma[i,j] <- (1+sqrt(3)*r/l)*exp(-sqrt(3)*r/l)
-    }
+##' @return scalar, the changepoint location
+find_change_location <- function(y_obs, maxK=7, a_prior){
+  log_marg_prev <- c(-Inf)
+  log_marg_after <- c(-Inf)
+  for (tau in 2:n_obs){
+    y_obs_prev <- y_obs[1:tau-1]
+    y_obs_after <- y_obs[tau:n_obs]
+    
+    a1 <- floor(min(y_obs_prev))
+    b1 <- ceiling(max(y_obs_prev))
+    a_post_prev <- PT_update(a1,b1,maxK,a_prior, y_obs_prev)$a_post
+    a2 <- floor(min(y_obs_after))
+    b2 <- ceiling(max(y_obs_after))
+    a_post_after <- PT_update(a2,b2,maxK,a_prior, y_obs_after)$a_post
+    log_marg_prev[tau] <- log_Marginal_prob(a_prior,a_post_prev)
+    log_marg_after[tau] <- log_Marginal_prob(a_prior,a_post_after)
   }
-  return (Sigma)
+  log_marg <- log_marg_prev + log_marg_after
+  change <- which.max(log_marg)
+  return(change)
 }
-
-##' Exponential kernel 
-##' @param X1 numeric vector 
-##' @param X2 numeric vector 
-##' @param l length parameter
-##' 
-##' @return the covariance matrix of X1 and X2
-Exp_k <- function(X1,X2,l=1){
-  Sigma <- matrix(rep(0, length(X1)*length(X2)), nrow=length(X1))
-  for (i in 1:nrow(Sigma)) {
-    for (j in 1:ncol(Sigma)) {
-      r <- abs(X1[i]-X2[j])
-      Sigma[i,j] <- exp(-r/l)
-    }
-  }
-  return (Sigma)
-}
-
-
-
-
-

@@ -1,67 +1,44 @@
 source("functions.R")
-load("simulatedData.RData")
-
 
 # observations
-n_obs <- 5000
+n_obs <- 200
 t <- 1:n_obs
-y_obs1 <- rexp(n_obs/2,4) 
-y_obs2 <- rexp(n_obs/2)
-y_obs <- c(y_obs1,y_obs2)
 
-# maximum depth of the tree
-maxK <- 7
+# change in mean in Exp
+y_exp1 <- rexp(n_obs/2) 
+y_exp2 <- rexp(n_obs/2)+1
+obs_exp <- c(y_exp1,y_exp2)
+# change in mean in Gaussian
+y_gaussian1 <- rnorm(n_obs/2,mean=0,sd=.5)
+y_gaussian2 <- rnorm(n_obs/2,mean=2,sd=.5)
+obs_gaussian_mean <- c(y_gaussian1,y_gaussian2)
+# change in mean in Gaussian
+y_gaussian3 <- rnorm(n_obs/2,mean=0,sd=1)
+obs_gaussian_var <- c(y_gaussian1,y_gaussian3)
 
-# Interval
-a <- floor(min(y_obs))
-b <- ceiling(max(y_obs))
+# initialisation
+maxK <- 7# maximum depth of the tree
+a_prior <- alpha_priors(maxK=maxK)# Set the prior knowledge about alpha
 
-nParam <- 2^(maxK + 1) - 2
-breaks <- a + (1:(2^maxK-1)) / (2^maxK) * (b-a) 
-# Set the prior knowledge about alpha
-a_prior <- rep(1/2,  nParam)
 
-#########Method 1:Single change point detection--Gaussian##################
-###############Work well as desired but ############################
-log_marg_prev <- c(-Inf)
-log_marg_after <- c(-Inf)
-for (tau in 2:n_obs){
-  y_obs_prev <- y_obs[1:tau-1]
-  y_obs_after <- y_obs[tau:n_obs]
+##############Single change in mean --Exp##########################
+tau_exp <- find_change_location(obs_exp, a_prior=a_prior)
+tau_gaussian_mean <- find_change_location(obs_gaussian_mean,
+                                          a_prior=a_prior)
+tau_gaussian_var <- find_change_location(obs_gaussian_var,
+                                         a_prior=a_prior)
 
-  a_post_prev <- PT_update(a,b,maxK,a_prior, y_obs_prev)$a_post
-
-  a_post_after <- PT_update(a,b,maxK,a_prior, y_obs_after)$a_post
-  log_marg_prev[tau] <- log_Marginal_prob(a_prior,a_post_prev)
-  log_marg_after[tau] <- log_Marginal_prob(a_prior,a_post_after)
-}
-log_marg <- log_marg_prev + log_marg_after
-change <- which.max(log_marg)
-plot(log_marg)
-points(change,log_marg[change],col="red")
-
-#########Method 2:Single change point detection--Gaussian##################
-##################Does not work but makes more sense################
-log_marg_prev <- c(-Inf)
-log_marg_after <- c(-Inf)
-for (tau in 2:n_obs){
-  y_obs_prev <- y_obs[1:tau-1]
-  y_obs_after <- y_obs[tau:n_obs]
-  
-  a1 <- floor(min(y_obs_prev))
-  b1 <- ceiling(max(y_obs_prev))
-  a_post_prev <- PT_update(a1,b1,maxK,a_prior, y_obs_prev)$a_post
-  a2 <- floor(min(y_obs_after))
-  b2 <- ceiling(max(y_obs_after))
-  a_post_after <- PT_update(a2,b2,maxK,a_prior, y_obs_after)$a_post
-  log_marg_prev[tau] <- log_Marginal_prob(a_prior,a_post_prev)
-  log_marg_after[tau] <- log_Marginal_prob(a_prior,a_post_after)
-}
-log_marg <- log_marg_prev + log_marg_after
-change <- which.max(log_marg)
-plot(log_marg)
-points(change,log_marg[change],col="red")
-
+par(mfrow=c(1,3))
+plot(obs_exp)
+abline(v=tau_exp,col="blue")
+abline(v=n_obs/2,col="red")
+main("Change in mean in exponential data")
+plot(obs_gaussian_mean)
+abline(v=tau_gaussian_mean,col="blue")
+abline(v=n_obs/2,col="red")
+plot(obs_gaussian_var)
+abline(v=tau_gaussian_var,col="blue")
+abline(v=n_obs/2,col="red")
 
 
 #############M1:Single change point detection--non-Gaussian############
