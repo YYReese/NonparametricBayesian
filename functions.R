@@ -155,3 +155,65 @@ find_change_location <- function(y_obs, maxK=7, a_prior){
   change <- which.max(log_marg)
   return(change)
 }
+
+
+##' Exponential kernel 
+##' @param X1 numeric vector 
+##' @param X2 numeric vector 
+##' @param l length parameter
+##' 
+##' @return the covariance matrix of X1 and X2
+Exp_k <- function(X1,X2,l=1){
+  Sigma <- matrix(rep(0, length(X1)*length(X2)), nrow=length(X1))
+  for (i in 1:nrow(Sigma)) {
+    for (j in 1:ncol(Sigma)) {
+      r <- abs(X1[i]-X2[j])
+      Sigma[i,j] <- exp(-r/l)
+    }
+  }
+  return (Sigma)
+}
+
+##' 3/2 Matern kernel 
+##' 
+##' @param X1 numeric vector 
+##' @param X2 numeric vector 
+##' @param l length parameter
+##' 
+##' @return the covariance matrix of X1 and X2
+Matern_k <- function(X1,X2,l=1){
+  Sigma <- matrix(rep(0, length(X1)*length(X2)), nrow=length(X1))
+  for (i in 1:nrow(Sigma)) {
+    for (j in 1:ncol(Sigma)) {
+      r <- abs(X1[i]-X2[j])
+      Sigma[i,j] <- (1+sqrt(3)*r/l)*exp(-sqrt(3)*r/l)
+    }
+  }
+  return (Sigma)
+}
+
+##' The objective function f constructed by 3/2 Matern
+##' 
+##' @param x
+##' 
+##' @return f(x)
+f <- function(x,r){
+  l <- length(x)
+  Sigma <- Matern_k(x,x,r)
+  R <- chol(Sigma)
+  return( t(R)%*%c(rnorm(n=l,mean=0,sd = 1)) )
+}
+
+
+##' The objective function g constructed by Exp
+##' 
+##' @param x
+##' 
+##' @return g(x)
+g <- function(x,r){
+  l <- length(x)
+  Sigma <- Exp_k(x,x,r)
+  R <- chol(Sigma)
+  return( t(R)%*%c(rnorm(n=l,mean=0,sd = 1))  )
+}
+
