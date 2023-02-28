@@ -1,0 +1,128 @@
+---
+title: "DP music Application Test"
+author: "Vicky"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r load-data}
+library(readxl)
+library(dirichletprocess)
+library(ggplot2)
+library(tidyverse)
+library(gridExtra)
+library(countrycode)
+library(arm)
+data <- read_excel("data.xlsx")
+```
+
+
+```{r}
+set.seed(1)
+df <- subset(data, select = -c(mode, time_signature, song_title, artist, target, valence))
+df <- sample_n(df[,-1], 500)
+```
+
+```{r}
+df_test1 <- subset(df, select = c(loudness,liveness))
+dataTrans1 <- scale(df_test1)
+dp1<- DirichletProcessMvnormal(dataTrans1)
+dp1 <- Fit(dp1, 200, progressBar = FALSE)
+plot(dp1)
+```
+
+```{r}
+df_test2 <- subset(df, select = c(loudness,acousticness))
+dataTrans2 <- scale(df_test2)
+dp2<- DirichletProcessMvnormal(dataTrans2)
+dp2 <- Fit(dp2, 200, progressBar = FALSE)
+plot(dp2)
+```
+
+```{r}
+df_test3 <- subset(df, select = c(loudness,acousticness,liveness,instrumentalness,key))
+dataTrans3 <- scale(df_test3)
+dp3<- DirichletProcessMvnormal(dataTrans3)
+dp3 <- Fit(dp3, 200, progressBar = FALSE)
+plot(dp3)
+```
+
+
+```{r}
+dataTrans <- scale(df)
+dp <- DirichletProcessMvnormal(dataTrans)
+dp <- Fit(dp, 200, progressBar = FALSE)
+plot(dp)
+```
+
+```{r}
+df <- mutate(df, label = dp$clusterLabels)
+#filter(df,label==6)
+```
+
+```{r}
+df %>% select(-Species) %>% scale -> irisPred 
+pairs(dataTrans, col=dp$clusterLabels)
+```
+
+```{r}
+heatmap(cor(dataTrans))
+cor(dataTrans)
+```
+
+```{r}
+library(ClusterR)
+```
+
+
+
+```{r}
+#PCA
+pc <- prcomp(df,scale. = TRUE)
+
+#reverse the signs
+pc$rotation <- -1*pc$rotation
+
+#display principal components
+pc$rotation
+
+heatmap(pc$rotation)
+
+biplot(pc)
+
+
+dp_pca <- DirichletProcessMvnormal(pc$x)
+dp_pca <- Fit(dp_pca, 200, progressBar = FALSE)
+plot(dp_pca)
+```
+```{r}
+#PCA
+pc1 <- prcomp(df_test1,scale. = TRUE)
+pc2 <- prcomp(df_test2,scale. = TRUE)
+pc3 <- prcomp(df_test3,scale. = TRUE)
+
+pc1$rotation <- -1*pc1$rotation
+pc2$rotation <- -1*pc2$rotation
+pc3$rotation <- -1*pc3$rotation
+
+
+dp_pca1 <- DirichletProcessMvnormal(pc1$x)
+dp_pca1 <- Fit(dp_pca1, 200, progressBar = FALSE)
+plot(dp_pca1)
+
+dp_pca2 <- DirichletProcessMvnormal(pc2$x)
+dp_pca2 <- Fit(dp_pca2, 200, progressBar = FALSE)
+plot(dp_pca2)
+
+dp_pca3 <- DirichletProcessMvnormal(pc3$x)
+dp_pca3 <- Fit(dp_pca3, 200, progressBar = FALSE)
+plot(dp_pca3)
+
+```
+
