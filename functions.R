@@ -33,14 +33,13 @@ Cal_prob <- function(theta, maxK){
   return (prob)
 }
 
-##' Calculate the predictive probability (!Does Not Work!)
-##' probability measure for the partitions
+##' Calculate the log marginal probability of 
+##' a set of observations y
 ##' 
 ##' @param alpha vector of parameter alpha
-##' @param maxK scalar, maximum tree levels i.e.depth of the tree
+##' @param maxK scalar, maximum tree levels 
 ##' 
-##' @return vector of expected predictive probabilities 
-##' for each partition
+##' @return scalar, the log marginal probability of y
 log_Marginal_prob <- function(a_prior,a_post){
   log_marg <- 0
   for(i in 1:(length(a_prior)/2)){
@@ -123,8 +122,8 @@ PT_update <- function(a, b, maxK=10, a_prior, y_obs){
 alpha_priors <- function(c=1, maxK){
   alpha <- c()
   for(m in 1:(2^maxK-1)){
-    alpha[2*m-1] <- m^2
-    alpha[2*m] <- m^2
+    alpha[2*m-1] <- c*m^2
+    alpha[2*m] <- c*m^2
   }
   return (alpha)
 }
@@ -136,18 +135,22 @@ alpha_priors <- function(c=1, maxK){
 ##' 
 ##' @return scalar, the changepoint location
 find_change_location <- function(y_obs, maxK=7, a_prior){
-  log_marg_prev <- c(-Inf)
-  log_marg_after <- c(-Inf)
-  for (tau in 2:n_obs){
+  log_marg_prev <- rep(-Inf, len=length(y_obs))
+  log_marg_after <- rep(-Inf, len=length(y_obs))
+  n_obs <- length(y_obs)
+  ign <- n_obs/50
+  for (tau in ign:(n_obs-ign)){
     y_obs_prev <- y_obs[1:tau-1]
     y_obs_after <- y_obs[tau:n_obs]
     
     a1 <- floor(min(y_obs_prev))
     b1 <- ceiling(max(y_obs_prev))
     a_post_prev <- PT_update(a1,b1,maxK,a_prior, y_obs_prev)$a_post
+    
     a2 <- floor(min(y_obs_after))
     b2 <- ceiling(max(y_obs_after))
     a_post_after <- PT_update(a2,b2,maxK,a_prior, y_obs_after)$a_post
+    
     log_marg_prev[tau] <- log_Marginal_prob(a_prior,a_post_prev)
     log_marg_after[tau] <- log_Marginal_prob(a_prior,a_post_after)
   }
@@ -155,6 +158,48 @@ find_change_location <- function(y_obs, maxK=7, a_prior){
   change <- which.max(log_marg)
   return(change)
 }
+
+##' Compute the covering metric 
+##' 
+##' @param true_idx scalar, the true change location
+##' @param est_idx scalar, the estimated change location
+##' @param vec_len the length of the underlying time series
+##' 
+##' @return scalar, the changepoint location
+covering_metric <- function(true_idx, est_idx, vec_len){
+  d <- abs(true_idx-est_idx)
+  l <- min(true_idx, vec_len-true_idx)
+  return(d/l)
+}
+
+##' Nonparametric Bayesian hypothesis test
+##' Calculate the Bayes factor for H0 against H1
+##' 
+##' @param log_marg.H0 scalar, the log marginal probability under H0
+##' @param log_marg.H1 vector, log marginal under H1 across 
+##' every changepoint configuration
+##' 
+##' @return scalar, Bayes factor for the hypothesis test
+cal_BF <- function(a_prior, a_post.H0, a_post_prev,a_post_after){
+  b <- c()
+  for(i in 1:(length(a_prior)/2)){
+    b[i] <- lgamma(a_prior[2*i-1])+lgamma(a_prior[2*i])+
+      lgamma(a_post.H0[2*i-1])+lgamma(a_post.H0[2*i])-
+      lgamma(a_prior[2*i-1]+a_prior[2*i])-
+      lgamma(a_post.H0[2*i-1]+a_post.H0[2*i])+
+      lgamma(a_post_prev[2*i-1]+a_post_prev[2*i])+
+      lgamma(a_post_after[2*i-1]+a_post_after[2*i])-
+      lgamma(a_post_prev[2*i-1])-
+      lgamma(a_post_prev[2*i])-
+      lgamma(a_post_after[2*i-1])-
+      lgamma(a_post_after[2*i])
+    
+  }
+  log_odds_ratio <- sum(b)
+  odds.post.H0 <- 1/(1+exp(-log_odds_ratio))
+  return(sum(b))
+}
+
 
 
 ##' Exponential kernel 

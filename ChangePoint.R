@@ -5,19 +5,19 @@ n_obs <- 500
 t <- 1:n_obs
 
 # change in mean in Exp
-y_exp1 <- rexp(n_obs/2) 
-y_exp2 <- rexp(n_obs/2)+1
+y_exp1 <- rexp(n_obs/2,1) 
+y_exp2 <- rexp(n_obs/2,1/2)
 obs_exp <- c(y_exp1,y_exp2)
 # change in mean in Gaussian
 y_gaussian1 <- rnorm(n_obs/2,mean=0,sd=.5)
-y_gaussian2 <- rnorm(n_obs/2,mean=2,sd=.5)
+y_gaussian2 <- rnorm(n_obs/2,mean=1,sd=.5)
 obs_gaussian_mean <- c(y_gaussian1,y_gaussian2)
 # change in variance in Gaussian
 y_gaussian3 <- rnorm(n_obs/2,mean=0,sd=2)
 obs_gaussian_var <- c(y_gaussian1,y_gaussian3)
 
 # initialisation
-maxK <- 7 # maximum depth
+maxK <- 10 # maximum depth
 a_prior <- alpha_priors(maxK=maxK) # alpha prior
 
 

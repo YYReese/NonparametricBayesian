@@ -1,20 +1,20 @@
 source("functions.R")
 # Interval
-a <- -5
-b <- 5
+a <- -3
+b <- 3
 
 # maximum depth of the tree
-maxK <- 7
+maxK <- 10
 
 nParam <- 2^(maxK + 1) - 2
 breaks <- a + (1:(2^maxK-1)) / (2^maxK) * (b-a) 
 # Set the prior knowledge about alpha
 #a_prior <- rep(1/2,  nParam)
-a_prior <- alpha_priors(c=8,maxK = maxK)
+a_prior <- alpha_priors(c=1,maxK = maxK)
 
 # observations
 n_obs <- 5000
-y_obs <- rnorm(n_obs) 
+y_obs <- rnorm(n_obs)
 
 # Draw n realisations from posterior PT
 n <- 10000
@@ -46,12 +46,12 @@ plot(xPoints, p/((b-a)/2^maxK), col=2, type="l",
 # 90% Confidence interval
 lines(xPoints, up_p/((b-a)/2^maxK),col="grey",type="l")
 lines(xPoints, lw_p/((b-a)/2^maxK),col="grey",type="l")
-
+lines(density(y_obs),col="green")
 # Show the observations
 #points(density(y_obs), col=4,pch=3, cex=0.05)
 
 # Standard Gaussian
-lines(xPoints,dnorm(xPoints))
+#lines(xPoints,dnorm(xPoints))
 
 
 title("n=5000 observations",cex=0.3)
@@ -65,11 +65,4 @@ thetas <- draw_theta(alpha = a_prior)
 prob <- Cal_prob(thetas,maxK)
 prob <- prob/sum(prob)
 plot(xPoints,prob[(length(mu_p)-2^(maxK)+1): length(mu_p)],type="l")
-
-
-
-
-
-
-
 
